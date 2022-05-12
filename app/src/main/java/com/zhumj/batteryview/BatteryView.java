@@ -357,8 +357,20 @@ public class BatteryView extends View {
      * 设置方向，vertical：0，horizontal：1
      */
     public void setOrientation(int orientation) {
-        this.orientation = orientation;
-        invalidate();
+        if (orientation != this.orientation) {
+            int defMinWidth = minHeight;
+            int defMinHeight = minWidth;
+            minWidth = defMinWidth;
+            minHeight = defMinHeight;
+
+            int defHeadWidth = headHeight;
+            int defHeadHeight = headWidth;
+            headWidth = defHeadWidth;
+            headHeight = defHeadHeight;
+
+            this.orientation = orientation;
+            requestLayout();
+        }
     }
 
     /**
