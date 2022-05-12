@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    
+    <declare-styleable name="BatteryView">
+        <attr name="orientation" format="enum">
+            <enum name="vertical" value="0"/>
+            <enum name="horizontal" value="1"/>
+        </attr>
+        <attr name="minWidth" format="dimension"/>
+        <attr name="minHeight" format="dimension"/>
+        <attr name="maxPower" format="integer"/>
+        <attr name="border_width" format="dimension"/>
+        <attr name="border_radius" format="dimension"/>
+        <attr name="border_color" format="color"/>
+        <attr name="head_width" format="dimension"/>
+        <attr name="head_height" format="dimension"/>
+        <attr name="head_padding" format="dimension"/>
+        <attr name="head_color" format="color"/>
+        <attr name="inside_padding" format="dimension"/>
+        <attr name="inside_radius" format="dimension"/>
+        <attr name="lowPowerColor" format="color"/>
+        <attr name="highPowerColor" format="color"/>
+        <attr name="chargingColor" format="color"/>
+    </declare-styleable>
+    
+</resources>
