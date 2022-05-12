@@ -21,6 +21,10 @@
         <attr name="lowPowerColor" format="color"/>
         <attr name="highPowerColor" format="color"/>
         <attr name="chargingColor" format="color"/>
+        <attr name="chargingMode" format="enum">
+            <enum name="lightning" value="0"/>
+            <enum name="step" value="1"/>
+        </attr>
     </declare-styleable>
     
 </resources>

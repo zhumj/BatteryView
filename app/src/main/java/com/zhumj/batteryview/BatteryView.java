@@ -8,11 +8,11 @@ import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.RectF;
 import android.os.BatteryManager;
 import android.os.Handler;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.View;
 
 import androidx.annotation.ColorInt;
@@ -24,6 +24,23 @@ import androidx.annotation.Nullable;
  * @description : 电池电量View
  */
 public class BatteryView extends View {
+
+    /**
+     * 方向：竖向
+     */
+    public static final int VERTICAL = 0;
+    /**
+     * 方向：横向
+     */
+    public static final int HORIZONTAL = 1;
+    /**
+     * 充电状态动画：闪电
+     */
+    public static final int LIGHTNING = 0;
+    /**
+     * 充电状态动画：步进动画
+     */
+    public static final int STEP = 1;
 
     private int orientation;//方向，vertical：0，horizontal：1
 
@@ -45,6 +62,9 @@ public class BatteryView extends View {
     private float insidePadding; // 电池内框距外框的距离
     private float insideRadius; // 电池内框四角半径
 
+    private Paint lightningPaint; // 电池内部画笔
+    private int chargingAnimMode;//充电状态动画，LIGHTNING = 0：闪电，STEP = 1：步进动画
+
     private @ColorInt int lowPowerColor; // 低电量颜色
     private @ColorInt int highPowerColor; // 高电量颜色
     private @ColorInt int chargingColor; // 充电中颜色
@@ -58,7 +78,7 @@ public class BatteryView extends View {
 
     private final Handler batteryHandler = new Handler();
     /**
-     * 充电动画
+     * 充电步进动画
      */
     private final Runnable chargingTask = () -> {
         if (power >= maxPower) {
@@ -67,16 +87,16 @@ public class BatteryView extends View {
             if (power == maxPower/5 || power == maxPower*2/5 || power == maxPower*3/5 || power == maxPower*4/5) {
                 power += maxPower/5;
             } else {
-                if (power < maxPower/5) {
+                if (power <= maxPower/5) {
                     power = maxPower/5;
                 }
-                else if (power < maxPower*2/5) {
+                else if (power <= maxPower*2/5) {
                     power = maxPower*2/5;
                 }
-                else if (power < maxPower*3/5) {
+                else if (power <= maxPower*3/5) {
                     power = maxPower*3/5;
                 }
-                else if (power < maxPower*4/5) {
+                else if (power <= maxPower*4/5) {
                     power = maxPower*4/5;
                 } else {
                     power = maxPower;
@@ -101,6 +121,9 @@ public class BatteryView extends View {
                 if (isCharging() != currentCharging) {
                     setCharging(currentCharging);
                 } else {
+                    if (currentCharging && chargingAnimMode == STEP) {
+                        return;
+                    }
                     setPower(currentPower);
                 }
             }
@@ -124,16 +147,17 @@ public class BatteryView extends View {
 
     private void initAttrs(AttributeSet attrs) {
         TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.BatteryView);
-        orientation = a.getInt(R.styleable.BatteryView_orientation, 0);
-        int defMinWidth = 24;
-        int defHeight = 45;
-        int defHeadWidth = 12;
-        int defHeadHeight = 4;
+        orientation = a.getInt(R.styleable.BatteryView_orientation, VERTICAL);
+
+        int defMinWidth = 72;
+        int defHeight = 135;
+        int defHeadWidth = 36;
+        int defHeadHeight = 8;
         if (orientation == 1) {
-            defMinWidth = 45;
-            defHeight = 24;
-            defHeadWidth = 4;
-            defHeadHeight = 12;
+            defMinWidth = 135;
+            defHeight = 72;
+            defHeadWidth = 8;
+            defHeadHeight = 36;
         }
 
         minWidth = (int) a.getDimension(R.styleable.BatteryView_minWidth, defMinWidth);
@@ -141,17 +165,19 @@ public class BatteryView extends View {
         maxPower = a.getInt(R.styleable.BatteryView_maxPower, 100);
         power = maxPower;
 
-        borderWidth = a.getDimension(R.styleable.BatteryView_border_width, 3);
-        borderRadius = a.getDimension(R.styleable.BatteryView_border_radius, 4);
+        borderWidth = a.getDimension(R.styleable.BatteryView_border_width, 6);
+        borderRadius = a.getDimension(R.styleable.BatteryView_border_radius, 6);
         borderColor = a.getColor(R.styleable.BatteryView_border_color, Color.BLACK);
 
         headWidth = a.getDimension(R.styleable.BatteryView_head_width, defHeadWidth);
         headHeight = a.getDimension(R.styleable.BatteryView_head_height, defHeadHeight);
-        headPadding = a.getDimension(R.styleable.BatteryView_head_padding, 2);
+        headPadding = a.getDimension(R.styleable.BatteryView_head_padding, 4);
         headColor = a.getColor(R.styleable.BatteryView_head_color, Color.BLACK);
 
-        insidePadding = a.getDimension(R.styleable.BatteryView_inside_padding, 3);
-        insideRadius = a.getDimension(R.styleable.BatteryView_inside_radius, 3);
+        insidePadding = a.getDimension(R.styleable.BatteryView_inside_padding, 4);
+        insideRadius = a.getDimension(R.styleable.BatteryView_inside_radius, 4);
+
+        chargingAnimMode = a.getInt(R.styleable.BatteryView_chargingMode, LIGHTNING);
 
         lowPowerColor = a.getColor(R.styleable.BatteryView_lowPowerColor, Color.RED);
         highPowerColor = a.getColor(R.styleable.BatteryView_highPowerColor, Color.BLACK);
@@ -175,6 +201,11 @@ public class BatteryView extends View {
         insidePaint = new Paint();
         insidePaint.setAntiAlias(true);
         insidePaint.setStyle(Paint.Style.FILL);
+
+        //闪电
+        lightningPaint = new Paint();
+        lightningPaint.setAntiAlias(true);
+        lightningPaint.setStyle(Paint.Style.FILL);
     }
 
     @Override
@@ -202,10 +233,16 @@ public class BatteryView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
+        insidePaint.setAlpha(255);
         if (isCharging) {
             borderPaint.setColor(chargingColor);
             headPaint.setColor(chargingColor);
             insidePaint.setColor(chargingColor);
+
+            if (chargingAnimMode == LIGHTNING) {
+                insidePaint.setAlpha(72);
+                lightningPaint.setColor(chargingColor);
+            }
         } else {
             if (power <= maxPower/10) {
                 borderPaint.setColor(lowPowerColor);
@@ -218,7 +255,7 @@ public class BatteryView extends View {
             }
         }
 
-        if (orientation == 0) {
+        if (orientation == VERTICAL) {
             drawVertical(canvas);
         } else {
             drawHorizontal(canvas);
@@ -226,7 +263,11 @@ public class BatteryView extends View {
 
         batteryHandler.removeCallbacks(chargingTask);
         if (isCharging) {
-            batteryHandler.postDelayed(chargingTask, 1000);
+            if (chargingAnimMode == LIGHTNING) {
+                canvas.drawPath(getLightningPath(), lightningPaint);
+            } else {
+                batteryHandler.postDelayed(chargingTask, 1000);
+            }
         }
     }
 
@@ -307,6 +348,49 @@ public class BatteryView extends View {
         canvas.drawRoundRect(insideRectF, mInsideRadius, mInsideRadius, insidePaint);
     }
 
+    private Path getLightningPath() {
+        Path path = new Path();
+        if (orientation == VERTICAL) {
+            float lightningWidth = getWidth() - getPaddingLeft() - getPaddingRight() - borderWidth*2 - insidePadding*2;
+            float lightningPaddingH = lightningWidth/10;
+            lightningWidth = lightningWidth - lightningPaddingH*2;
+
+            float lightningHeight = getHeight() - getPaddingTop() - getPaddingBottom() - headHeight - headPadding - borderWidth*2 - insidePadding*2;
+            float lightningPaddingV = lightningHeight/10;
+            lightningHeight = lightningHeight - lightningPaddingV*2;
+
+            float startX = getPaddingLeft() + borderWidth + insidePadding + lightningPaddingH;
+            float startY = getPaddingTop() + headHeight + headPadding + borderWidth + insidePadding + lightningPaddingV;
+            path.moveTo(startX + lightningWidth*2/3, startY);
+            path.lineTo(startX + lightningWidth*2/3, startY + lightningHeight*2/5);
+            path.lineTo(startX + lightningWidth, startY + lightningHeight*2/5);
+            path.lineTo(startX + lightningWidth/3, startY + lightningHeight);
+            path.lineTo(startX + lightningWidth/3, startY + lightningHeight*3/5);
+            path.lineTo(startX, startY + lightningHeight*3/5);
+            path.lineTo(startX + lightningWidth*2/3, startY);
+        } else {
+            float lightningWidth = getWidth() - getPaddingLeft() - getPaddingRight() - headWidth - headPadding - borderWidth*2 - insidePadding*2;
+            float lightningPaddingH = lightningWidth/10;
+            lightningWidth = lightningWidth - lightningPaddingH*2;
+
+            float lightningHeight = getHeight() - getPaddingTop() - getPaddingBottom() - borderWidth*2 - insidePadding*2;
+            float lightningPaddingV = lightningHeight/10;
+            lightningHeight = lightningHeight - lightningPaddingV*2;
+
+            float startX = getPaddingLeft() + borderWidth + insidePadding + lightningPaddingH;
+            float startY = getPaddingTop() + borderWidth + insidePadding + lightningPaddingV;
+            path.moveTo(startX, startY + lightningHeight/3);
+            path.lineTo(startX + lightningWidth*2/5, startY + lightningHeight/3);
+            path.lineTo(startX + lightningWidth*2/5, startY);
+            path.lineTo(startX + lightningWidth, startY + lightningHeight*2/3);
+            path.lineTo(startX + lightningWidth*3/5, startY + lightningHeight*2/3);
+            path.lineTo(startX + lightningWidth*3/5, startY + lightningHeight);
+            path.lineTo(startX, startY + lightningHeight/3);
+        }
+        path.close();
+        return path;
+    }
+
     /**
      * 获取当前电量
      */
@@ -353,6 +437,14 @@ public class BatteryView extends View {
         return isCharging;
     }
 
+    public int getOrientation() {
+        return orientation;
+    }
+
+    public int getChargingAnimMode() {
+        return chargingAnimMode;
+    }
+
     /**
      * 设置方向，vertical：0，horizontal：1
      */
@@ -363,9 +455,10 @@ public class BatteryView extends View {
             minHeight = minWidth^minHeight;
             minWidth = minWidth^minHeight;
 
-            headWidth = headWidth^headHeight;
-            headHeight = headWidth^headHeight;
-            headWidth = headWidth^headHeight;
+            // float 用不了异或方法，那就使用加减
+            float totalHead = headWidth + headHeight;
+            headWidth = totalHead - headWidth;
+            headHeight = totalHead - headHeight;
 
             this.orientation = orientation;
             requestLayout();
@@ -377,7 +470,7 @@ public class BatteryView extends View {
      */
     public void setMinWidth(int minWidth) {
         this.minWidth = minWidth;
-        invalidate();
+        requestLayout();
     }
 
     /**
@@ -385,7 +478,7 @@ public class BatteryView extends View {
      */
     public void setMinHeight(int minHeight) {
         this.minHeight = minHeight;
-        invalidate();
+        requestLayout();
     }
 
     /**
@@ -412,6 +505,19 @@ public class BatteryView extends View {
             batteryHandler.removeCallbacks(chargingTask);
         }
         setPower(getCurrentPower());
+    }
+
+    /**
+     * 设置充电状态模式
+     */
+    public void setChargingAnimMode(int chargingMode) {
+        if (this.chargingAnimMode != chargingMode) {
+            this.chargingAnimMode = chargingMode;
+            if (isCharging()) {
+                batteryHandler.removeCallbacks(chargingTask);
+                setPower(getCurrentPower());
+            }
+        }
     }
 
     /**
