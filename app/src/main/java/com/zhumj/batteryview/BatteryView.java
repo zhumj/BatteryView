@@ -358,15 +358,14 @@ public class BatteryView extends View {
      */
     public void setOrientation(int orientation) {
         if (orientation != this.orientation) {
-            int defMinWidth = minHeight;
-            int defMinHeight = minWidth;
-            minWidth = defMinWidth;
-            minHeight = defMinHeight;
+            // 使用异或方法交换数值
+            minWidth = minWidth^minHeight;
+            minHeight = minWidth^minHeight;
+            minWidth = minWidth^minHeight;
 
-            int defHeadWidth = headHeight;
-            int defHeadHeight = headWidth;
-            headWidth = defHeadWidth;
-            headHeight = defHeadHeight;
+            headWidth = headWidth^headHeight;
+            headHeight = headWidth^headHeight;
+            headWidth = headWidth^headHeight;
 
             this.orientation = orientation;
             requestLayout();
