@@ -42,6 +42,7 @@ public class BatteryView extends View {
      */
     public static final int STEP = 1;
 
+    private boolean isAutoDetect;//是否自动检测系统电量
     private int orientation;//方向，vertical：0，horizontal：1
 
     private int minWidth;//最小宽度
@@ -113,7 +114,7 @@ public class BatteryView extends View {
     private final BroadcastReceiver batteryReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (Intent.ACTION_BATTERY_CHANGED.equals(intent.getAction())) {
+            if (Intent.ACTION_BATTERY_CHANGED.equals(intent.getAction()) && isAutoDetect()) {
                 setMaxPower(intent.getIntExtra(BatteryManager.EXTRA_SCALE, 100));
                 int currentPower = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, 0);
                 int status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_UNKNOWN);
@@ -147,6 +148,7 @@ public class BatteryView extends View {
 
     private void initAttrs(AttributeSet attrs) {
         TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.BatteryView);
+        isAutoDetect = a.getBoolean(R.styleable.BatteryView_isAutoDetect, false);
         orientation = a.getInt(R.styleable.BatteryView_orientation, VERTICAL);
 
         int defMinWidth = 72;
@@ -406,7 +408,9 @@ public class BatteryView extends View {
      */
     private int verifyPower(int power) {
         int p;
-        if (power <= maxPower/10) {
+        if (power <= 0) {
+            p = 0;
+        } else if (power <= maxPower/10) {
             p = maxPower/10;
         } else if (power <= maxPower*2/10) {
             p = maxPower/5;
@@ -431,6 +435,13 @@ public class BatteryView extends View {
     }
 
     /**
+     * 获取是否自动检测系统电量
+     */
+    public boolean isAutoDetect() {
+        return isAutoDetect;
+    }
+
+    /**
      * 获取当前充电状态
      */
     public boolean isCharging() {
@@ -446,10 +457,17 @@ public class BatteryView extends View {
     }
 
     /**
+     * 设置是否自动检测系统电量
+     */
+    public void setAutoDetect(boolean autoDetect) {
+        isAutoDetect = autoDetect;
+    }
+
+    /**
      * 设置方向，vertical：0，horizontal：1
      */
     public void setOrientation(int orientation) {
-        if (orientation != this.orientation) {
+        if (orientation != getOrientation()) {
             // 使用异或方法交换数值
             minWidth = minWidth^minHeight;
             minHeight = minWidth^minHeight;
@@ -500,22 +518,32 @@ public class BatteryView extends View {
      * 设置充电状态
      */
     public void setCharging(boolean charging) {
-        isCharging = charging;
-        if (!charging) {
-            batteryHandler.removeCallbacks(chargingTask);
+        if (isCharging() != charging) {
+            isCharging = charging;
+            if (!charging) {
+                batteryHandler.removeCallbacks(chargingTask);
+            }
+            if (isAutoDetect()) {
+                setPower(getCurrentPower());
+            } else {
+                invalidate();
+            }
         }
-        setPower(getCurrentPower());
     }
 
     /**
      * 设置充电状态模式
      */
     public void setChargingAnimMode(int chargingMode) {
-        if (this.chargingAnimMode != chargingMode) {
+        if (getChargingAnimMode() != chargingMode) {
             this.chargingAnimMode = chargingMode;
             if (isCharging()) {
                 batteryHandler.removeCallbacks(chargingTask);
-                setPower(getCurrentPower());
+                if (isAutoDetect()) {
+                    setPower(getCurrentPower());
+                } else {
+                    invalidate();
+                }
             }
         }
     }

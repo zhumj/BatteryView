@@ -2,6 +2,7 @@
 <resources>
     
     <declare-styleable name="BatteryView">
+        <attr name="isAutoDetect" format="boolean"/>
         <attr name="orientation" format="enum">
             <enum name="vertical" value="0"/>
             <enum name="horizontal" value="1"/>
