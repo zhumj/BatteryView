@@ -141,14 +141,14 @@ public class BatteryView extends View {
         initAttrs(attrs);
         initPaint();
 
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(Intent.ACTION_BATTERY_CHANGED);//电量变化
-        context.registerReceiver(batteryReceiver, filter);
+        if (isAutoDetect()) {
+            registerReceiver();
+        }
     }
 
     private void initAttrs(AttributeSet attrs) {
         TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.BatteryView);
-        isAutoDetect = a.getBoolean(R.styleable.BatteryView_isAutoDetect, false);
+        isAutoDetect = a.getBoolean(R.styleable.BatteryView_isAutoDetect, true);
         orientation = a.getInt(R.styleable.BatteryView_orientation, VERTICAL);
 
         int defMinWidth = 72;
@@ -208,6 +208,12 @@ public class BatteryView extends View {
         lightningPaint = new Paint();
         lightningPaint.setAntiAlias(true);
         lightningPaint.setStyle(Paint.Style.FILL);
+    }
+
+    private void registerReceiver() {
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_BATTERY_CHANGED);//电量变化
+        getContext().registerReceiver(batteryReceiver, filter);
     }
 
     @Override
@@ -460,7 +466,14 @@ public class BatteryView extends View {
      * 设置是否自动检测系统电量
      */
     public void setAutoDetect(boolean autoDetect) {
-        isAutoDetect = autoDetect;
+        if (isAutoDetect() != autoDetect) {
+            isAutoDetect = autoDetect;
+            if (autoDetect) {
+                registerReceiver();
+            } else {
+                getContext().unregisterReceiver(batteryReceiver);
+            }
+        }
     }
 
     /**
@@ -554,7 +567,9 @@ public class BatteryView extends View {
     @Override
     protected void onDetachedFromWindow() {
         batteryHandler.removeCallbacks(chargingTask);
-        getContext().unregisterReceiver(batteryReceiver);
+        if (isAutoDetect()) {
+            getContext().unregisterReceiver(batteryReceiver);
+        }
         super.onDetachedFromWindow();
     }
 
