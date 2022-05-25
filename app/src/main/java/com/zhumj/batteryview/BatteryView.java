@@ -114,7 +114,7 @@ public class BatteryView extends View {
     private final BroadcastReceiver batteryReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (Intent.ACTION_BATTERY_CHANGED.equals(intent.getAction()) && isAutoDetect()) {
+            if (Intent.ACTION_BATTERY_CHANGED.equals(intent.getAction())) {
                 setMaxPower(intent.getIntExtra(BatteryManager.EXTRA_SCALE, 100));
                 int currentPower = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, 0);
                 int status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_UNKNOWN);
