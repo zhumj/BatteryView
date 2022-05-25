@@ -19,9 +19,9 @@ import androidx.annotation.ColorInt;
 import androidx.annotation.Nullable;
 
 /**
- * @author Created by zhumj
- * @date 2022/5/11 9:06
- * @description : 电池电量View
+ * @Author Created by zhumj
+ * @Date 2022/5/11 9:06
+ * @Description : 电池电量View
  */
 public class BatteryView extends View {
 
