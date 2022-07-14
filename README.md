@@ -2,8 +2,15 @@
 
 [![](https://jitpack.io/v/com.gitee.zhuminjun/BatteryView.svg)](https://jitpack.io/#com.gitee.zhuminjun/BatteryView)
 
-#### 介绍
+## 介绍
 自定义电池电量View
+
+#### 正常状态
+![正常状态](./pic/pic1.png)
+#### 充电状态-闪电
+![充电状态-闪电](./pic/pic2.png)
+#### 充电状态-步进动画
+![充电状态-步进动画](./pic/pic3.png)
 
 ## 使用
 
